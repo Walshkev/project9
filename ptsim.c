@@ -90,6 +90,32 @@ void new_process(int proc_num, int page_count)
     }
 }
 
+
+void kill_process(int proc_num)
+{
+    // Get the page table for the process
+    int page_table = get_page_table(proc_num);
+ 
+
+    // Free all the pages listed in the page table
+    for (int i = 0; i < PAGE_COUNT; i++)
+    {
+        int page_table_entry = get_address(page_table, i);
+        int page = mem[page_table_entry];
+
+        if (page != 0)
+        {
+            mem[page] = 0; // Free the page
+        }
+    }
+
+    // Free the page table itself
+    mem[page_table]=0;
+    mem[PTP_OFFSET + proc_num] = 0;
+}
+
+
+
 //
 // Print the free page map
 //
@@ -136,6 +162,45 @@ void print_page_table(int proc_num)
     }
 }
 
+int vert_to_phys(int proc_num, int vaddr){
+    int page_table = get_page_table(proc_num);
+
+    // Calculate the page number and offset
+    int page_num = vaddr / PAGE_SIZE;
+    int offset = vaddr % PAGE_SIZE;
+
+    // Get the physical address from the page table
+    int page_table_entry = get_address(page_table, page_num);
+    int physical_addr = mem[page_table_entry];
+
+    // Calculate the physical address
+    int physical_page = physical_addr * PAGE_SIZE + offset;
+    return physical_page;
+}
+void store_value(int proc_num, int vaddr, int value)
+{
+    // Get the page table for the process
+    int physical_page= vert_to_phys(proc_num, vaddr);
+
+    // Store the value at the physical address
+    mem[physical_page] = value;
+
+    // Print the output
+    printf("Store proc %d: %d => %d, value=%d\n", proc_num, vaddr, physical_page, value);
+}
+void load_value(int proc_num, int vaddr){
+
+   
+    // Calculate the physical address
+    int physical_page= vert_to_phys(proc_num, vaddr);
+
+    // Store the value at the physical address
+    int value = mem[physical_page] ;
+
+    // Print the output
+    printf("Store proc %d: %d => %d, value=%d\n", proc_num, vaddr, physical_page, value);
+}
+
 //
 // Main -- process command line
 //
@@ -167,6 +232,30 @@ int main(int argc, char *argv[])
             int proc_num = atoi(argv[++i]);
             int page_count = atoi(argv[++i]);
             new_process(proc_num, page_count);
+        }
+        else if (strcmp(argv[i], "kp") == 0)
+        {
+            int proc_num = atoi(argv[++i]);
+            kill_process(proc_num);
+
+        }
+        else if (strcmp(argv[i], "sb") == 0)
+        {
+            int proc_num= atoi(argv[++i]);
+            int addr= atoi(argv[++i]);
+            int value =atoi(argv[++i]);
+            store_value(proc_num ,addr ,value);
+
+
+        }
+
+        else if (strcmp(argv[i], "lb") == 0)
+        {
+            int proc_num= atoi(argv[++i]);
+            int addr= atoi(argv[++i]);
+            load_value(proc_num ,addr );
+
+
         }
     }
 }
